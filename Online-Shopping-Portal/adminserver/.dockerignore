@@ -1,0 +1,16 @@
+.gradle
+build
+out
+bin
+
+.idea
+.vscode
+.settings
+.classpath
+.project
+
+*.iml
+*.log
+
+Dockerfile*
+docker-compose*

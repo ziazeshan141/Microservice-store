@@ -1,43 +1,40 @@
 server:
-  port: 9091
+  port: ${SERVER_PORT:9091}
 
 spring:
   application:
-    name: Product Microservice
+    name: product-service
+
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: shopping
-  profiles:
-    active: local
+      uri: ${MONGODB_URI:mongodb://localhost:27017/shopping}
+
   boot:
     admin:
       client:
-        url:
-          - http://localhost:8081
+        url: ${ADMIN_SERVER_URL:http://localhost:8081}
+        instance:
+          service-base-url: ${SERVICE_BASE_URL:http://localhost:9091}
 
 logging:
-  file:
-    name: d:\logs\product.log
-#    path: d:\logs  #spring.log
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
   level:
     root: INFO
-
-# actuator specific
+    com.greenlearner.product: INFO
 
 management:
   endpoints:
     web:
       exposure:
         include:
-          - '*'
+          - health
+          - info
+          - metrics
+          - prometheus
+
   endpoint:
     health:
-      show-details: ALWAYS
+      show-details: always
+
   health:
     mongo:
       enabled: true
@@ -45,22 +42,11 @@ management:
 info:
   app:
     name: Product Microservice
-    version: 1.0
-    desccription: Add and retrieve product information
+    version: 1.0.0
+    description: Add and retrieve product information
 
 product:
   currencies:
     - INR
     - USD
     - EUR
-
----
-spring:
-  config:
-    activate:
-      on-profile:
-        - local
-  application:
-    name: Product Microservice(Local Env)
-
-

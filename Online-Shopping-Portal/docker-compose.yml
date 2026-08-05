@@ -1,0 +1,143 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: shopping-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: user_management
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./userservice/db_scripts/user_creation.sql:/docker-entrypoint-initdb.d/01-user_creation.sql:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - shopping-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: shopping-mongodb
+    restart: unless-stopped
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb-data:/data/db
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    networks:
+      - shopping-network
+
+  adminserver:
+    build:
+      context: ./adminserver
+      dockerfile: Dockerfile
+
+    container_name: shopping-adminserver
+    restart: unless-stopped
+
+    environment:
+      SERVER_PORT: 8081
+      MAIL_NOTIFICATIONS_ENABLED: ${MAIL_NOTIFICATIONS_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-localhost}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_TO: ${MAIL_TO:-devops@example.com}
+
+    ports:
+      - "8081:8081"
+
+    networks:
+      - shopping-network
+
+  product:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+
+    container_name: shopping-product
+    restart: unless-stopped
+
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      adminserver:
+        condition: service_started
+
+    environment:
+      SERVER_PORT: 9091
+      MONGODB_URI: mongodb://mongodb:27017/shopping
+      ADMIN_SERVER_URL: http://adminserver:8081
+      SERVICE_BASE_URL: http://product:9091
+
+    ports:
+      - "9091:9091"
+
+    networks:
+      - shopping-network
+
+  userservice:
+    build:
+      context: ./userservice
+      dockerfile: Dockerfile
+
+    container_name: shopping-userservice
+    restart: unless-stopped
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    environment:
+      SERVER_PORT: 9092
+
+      DB_URL: jdbc:mysql://mysql:3306/user_management?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+      APP_SECURITY_USERNAME: ${APP_SECURITY_USERNAME}
+      APP_SECURITY_PASSWORD: ${APP_SECURITY_PASSWORD}
+
+    ports:
+      - "9092:9092"
+
+    networks:
+      - shopping-network
+
+networks:
+  shopping-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongodb-data:

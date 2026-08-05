@@ -17,11 +17,14 @@ ext {
 }
 
 dependencies {
-	implementation 'de.codecentric:spring-boot-admin-starter-server'
-	implementation 'org.springframework.boot:spring-boot-starter-mail'
-	compile group: 'com.hazelcast', name: 'hazelcast-spring', version: '4.1.1'
+    implementation 'de.codecentric:spring-boot-admin-starter-server'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'com.hazelcast:hazelcast-spring:4.1.1'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 dependencyManagement {

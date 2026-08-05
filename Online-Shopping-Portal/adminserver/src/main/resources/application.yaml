@@ -1,31 +1,46 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 spring:
+  application:
+    name: admin-server
+
   mail:
-    host: smtp.mailtrap.io
-    port: 2525
-    username: 0557eeed891c4a
-    password: 729f4207a0d043
-    test-connection: true
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    test-connection: ${MAIL_TEST_CONNECTION:false}
+
   boot:
     admin:
       ui:
-        brand: "<img src= 'assets/img/logo.png'><span> Green Learner Services</span>"
-        title: 'Green Learner Services for Online Shopping Portal'
-        login-icon: 'assets/img/logo.png'
+        brand: "<span>Online Shopping Portal Monitoring</span>"
+        title: "Online Shopping Portal Monitoring"
         available-languages:
           - en
-          - fr
-          - hi
-        view-settings:
-          - name: 'about'
-            enabled: false
+
       notify:
         mail:
-          to:
-            - arvindakhilesh@gmail.com
-            - whytechnology01@gmail.com
-          ignore-changes:
-            - ''
+          enabled: ${MAIL_NOTIFICATIONS_ENABLED:false}
+          to: ${MAIL_TO:devops@example.com}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+          - prometheus
+
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: Admin Server
+    description: Monitoring dashboard for the Online Shopping Portal
+    version: 1.0.0
