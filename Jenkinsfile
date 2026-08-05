@@ -6,6 +6,10 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         APP_DIR = 'Online-Shopping-Portal'
 
