@@ -3,8 +3,14 @@ pipeline {
 
     environment {
         APP_DIR = 'Online-Shopping-Portal'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+
         REGISTRY = 'your-dockerhub-username'
+
+        ADMIN_IMAGE = "${REGISTRY}/shopping-adminserver"
+        PRODUCT_IMAGE = "${REGISTRY}/shopping-product"
+        USER_IMAGE = "${REGISTRY}/shopping-userservice"
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -14,35 +20,39 @@ pipeline {
             }
         }
 
-        stage('Build Admin Server') {
-            steps {
-                dir("${APP_DIR}/adminserver") {
-                    sh '''
-                        chmod +x gradlew
-                        ./gradlew clean test bootJar --no-daemon
-                    '''
+        stage('Build Gradle Applications') {
+            parallel {
+                stage('Admin Server') {
+                    steps {
+                        dir("${APP_DIR}/adminserver") {
+                            sh '''
+                                chmod +x gradlew
+                                ./gradlew clean test bootJar --no-daemon
+                            '''
+                        }
+                    }
                 }
-            }
-        }
 
-        stage('Build Product Service') {
-            steps {
-                dir("${APP_DIR}/product") {
-                    sh '''
-                        chmod +x gradlew
-                        ./gradlew clean test bootJar --no-daemon
-                    '''
+                stage('Product Service') {
+                    steps {
+                        dir("${APP_DIR}/product") {
+                            sh '''
+                                chmod +x gradlew
+                                ./gradlew clean test bootJar --no-daemon
+                            '''
+                        }
+                    }
                 }
-            }
-        }
 
-        stage('Build User Service') {
-            steps {
-                dir("${APP_DIR}/userservice") {
-                    sh '''
-                        chmod +x gradlew
-                        ./gradlew clean test bootJar --no-daemon
-                    '''
+                stage('User Service') {
+                    steps {
+                        dir("${APP_DIR}/userservice") {
+                            sh '''
+                                chmod +x gradlew
+                                ./gradlew clean test bootJar --no-daemon
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -51,15 +61,15 @@ pipeline {
             steps {
                 sh """
                     docker build \
-                      -t ${REGISTRY}/shopping-adminserver:${IMAGE_TAG} \
+                      -t ${ADMIN_IMAGE}:${IMAGE_TAG} \
                       ${APP_DIR}/adminserver
 
                     docker build \
-                      -t ${REGISTRY}/shopping-product:${IMAGE_TAG} \
+                      -t ${PRODUCT_IMAGE}:${IMAGE_TAG} \
                       ${APP_DIR}/product
 
                     docker build \
-                      -t ${REGISTRY}/shopping-userservice:${IMAGE_TAG} \
+                      -t ${USER_IMAGE}:${IMAGE_TAG} \
                       ${APP_DIR}/userservice
                 """
             }
@@ -76,22 +86,17 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASSWORD" |
-                          docker login -u "$DOCKER_USERNAME" \
+                        docker login \
+                          -u "$DOCKER_USERNAME" \
                           --password-stdin
 
-                        docker push ${REGISTRY}/shopping-adminserver:${IMAGE_TAG}
-                        docker push ${REGISTRY}/shopping-product:${IMAGE_TAG}
-                        docker push ${REGISTRY}/shopping-userservice:${IMAGE_TAG}
+                        docker push ${ADMIN_IMAGE}:${IMAGE_TAG}
+                        docker push ${PRODUCT_IMAGE}:${IMAGE_TAG}
+                        docker push ${USER_IMAGE}:${IMAGE_TAG}
 
                         docker logout
                     '''
                 }
-            }
-        }
-
-        stage('Update GitOps Repository') {
-            steps {
-                echo 'Clone GitOps repository and update image tags here'
             }
         }
     }
