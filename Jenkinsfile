@@ -2,16 +2,10 @@ pipeline {
     agent any
 
     options {
-        // Prevent the automatic checkout because a dedicated Checkout stage is used.
         skipDefaultCheckout(true)
-
-        // Add timestamps to console output.
         timestamps()
-
-        // Prevent two builds from updating the same GitOps repository simultaneously.
         disableConcurrentBuilds()
 
-        // Keep only the latest 20 Jenkins builds.
         buildDiscarder(
             logRotator(
                 numToKeepStr: '20',
@@ -19,7 +13,6 @@ pipeline {
             )
         )
 
-        // Stop a build that runs for too long.
         timeout(
             time: 60,
             unit: 'MINUTES'
@@ -31,24 +24,19 @@ pipeline {
     }
 
     environment {
-        // Application folder in the source repository.
         APP_DIR = 'Online-Shopping-Portal'
 
-        // Docker Hub username.
         REGISTRY = 'ziazeshan141'
 
-        // Docker image repositories.
         ADMIN_IMAGE = "${REGISTRY}/shopping-adminserver"
         PRODUCT_IMAGE = "${REGISTRY}/shopping-product"
         USER_IMAGE = "${REGISTRY}/shopping-userservice"
 
-        // Each Jenkins build gets a unique Docker image tag.
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        // Separate GitOps repository watched by Argo CD.
-        GITOPS_REPOSITORY = 'git@github.com:ziazeshan141/shopping-portal-gitops.git'
+        GITOPS_REPOSITORY =
+            'git@github.com:ziazeshan141/shopping-portal-gitops.git'
 
-        // GitOps branch.
         GITOPS_BRANCH = 'main'
     }
 
@@ -58,9 +46,9 @@ pipeline {
                 checkout scm
 
                 sh '''#!/usr/bin/env bash
-                    set -eu
+                    set -euo pipefail
 
-                    echo "Checked out commit:"
+                    echo "Checked-out commit:"
                     git rev-parse HEAD
 
                     echo "Current branch:"
@@ -75,7 +63,7 @@ pipeline {
         stage('Verify Jenkins Agent') {
             steps {
                 sh '''#!/usr/bin/env bash
-                    set -eu
+                    set -euo pipefail
 
                     echo "Git version:"
                     git --version
@@ -83,18 +71,23 @@ pipeline {
                     echo "Docker version:"
                     docker --version
 
-                    echo "Docker daemon:"
+                    echo "Python version:"
+                    python3 --version
+
+                    echo "Checking Docker daemon..."
                     docker info >/dev/null
 
-                    echo "Required application folders:"
+                    echo "Checking application directories..."
                     test -d "${APP_DIR}/adminserver"
                     test -d "${APP_DIR}/product"
                     test -d "${APP_DIR}/userservice"
 
-                    echo "Required Dockerfiles:"
+                    echo "Checking Dockerfiles..."
                     test -f "${APP_DIR}/adminserver/Dockerfile"
                     test -f "${APP_DIR}/product/Dockerfile"
                     test -f "${APP_DIR}/userservice/Dockerfile"
+
+                    echo "Jenkins agent verification passed."
                 '''
             }
         }
@@ -109,7 +102,7 @@ pipeline {
                     steps {
                         dir("${APP_DIR}/adminserver") {
                             sh '''#!/usr/bin/env bash
-                                set -eu
+                                set -euo pipefail
 
                                 echo "=================================="
                                 echo "Building Admin Server"
@@ -124,10 +117,10 @@ pipeline {
                                 ./gradlew --version
 
                                 ./gradlew \
-                                  clean \
-                                  test \
-                                  bootJar \
-                                  --no-daemon
+                                    clean \
+                                    test \
+                                    bootJar \
+                                    --no-daemon
                             '''
                         }
                     }
@@ -141,7 +134,7 @@ pipeline {
                     steps {
                         dir("${APP_DIR}/product") {
                             sh '''#!/usr/bin/env bash
-                                set -eu
+                                set -euo pipefail
 
                                 echo "=================================="
                                 echo "Building Product Service"
@@ -156,10 +149,10 @@ pipeline {
                                 ./gradlew --version
 
                                 ./gradlew \
-                                  clean \
-                                  test \
-                                  bootJar \
-                                  --no-daemon
+                                    clean \
+                                    test \
+                                    bootJar \
+                                    --no-daemon
                             '''
                         }
                     }
@@ -173,7 +166,7 @@ pipeline {
                     steps {
                         dir("${APP_DIR}/userservice") {
                             sh '''#!/usr/bin/env bash
-                                set -eu
+                                set -euo pipefail
 
                                 echo "=================================="
                                 echo "Building User Service"
@@ -188,10 +181,10 @@ pipeline {
                                 ./gradlew --version
 
                                 ./gradlew \
-                                  clean \
-                                  test \
-                                  bootJar \
-                                  --no-daemon
+                                    clean \
+                                    test \
+                                    bootJar \
+                                    --no-daemon
                             '''
                         }
                     }
@@ -212,32 +205,32 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh '''#!/usr/bin/env bash
-                    set -eu
+                    set -euo pipefail
 
-                    echo "Building Admin Server image..."
+                    echo "Building Admin Server Docker image..."
                     docker build \
-                      --pull \
-                      -t "${ADMIN_IMAGE}:${IMAGE_TAG}" \
-                      "${APP_DIR}/adminserver"
+                        --pull \
+                        -t "${ADMIN_IMAGE}:${IMAGE_TAG}" \
+                        "${APP_DIR}/adminserver"
 
-                    echo "Building Product Service image..."
+                    echo "Building Product Service Docker image..."
                     docker build \
-                      --pull \
-                      -t "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
-                      "${APP_DIR}/product"
+                        --pull \
+                        -t "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
+                        "${APP_DIR}/product"
 
-                    echo "Building User Service image..."
+                    echo "Building User Service Docker image..."
                     docker build \
-                      --pull \
-                      -t "${USER_IMAGE}:${IMAGE_TAG}" \
-                      "${APP_DIR}/userservice"
+                        --pull \
+                        -t "${USER_IMAGE}:${IMAGE_TAG}" \
+                        "${APP_DIR}/userservice"
 
-                    echo "Created Docker images:"
+                    echo "Docker images created:"
                     docker image inspect \
-                      "${ADMIN_IMAGE}:${IMAGE_TAG}" \
-                      "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
-                      "${USER_IMAGE}:${IMAGE_TAG}" \
-                      --format '{{.RepoTags}} {{.Id}}'
+                        "${ADMIN_IMAGE}:${IMAGE_TAG}" \
+                        "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
+                        "${USER_IMAGE}:${IMAGE_TAG}" \
+                        --format '{{.RepoTags}} {{.Id}}'
                 '''
             }
         }
@@ -252,12 +245,12 @@ pipeline {
                     )
                 ]) {
                     sh '''#!/usr/bin/env bash
-                        set -eu
+                        set -euo pipefail
 
                         echo "$DOCKER_PASSWORD" |
                         docker login \
-                          --username "$DOCKER_USERNAME" \
-                          --password-stdin
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
 
                         echo "Pushing Admin Server image..."
                         docker push "${ADMIN_IMAGE}:${IMAGE_TAG}"
@@ -278,7 +271,7 @@ pipeline {
             steps {
                 sshagent(credentials: ['gitops-ssh-key']) {
                     sh '''#!/usr/bin/env bash
-                        set -eu
+                        set -euo pipefail
 
                         GITOPS_DIR="shopping-portal-gitops"
 
@@ -291,13 +284,13 @@ pipeline {
                         chmod 600 "$HOME/.ssh/known_hosts"
 
                         if ! ssh-keygen \
-                          -F github.com \
-                          -f "$HOME/.ssh/known_hosts" \
-                          >/dev/null; then
+                            -F github.com \
+                            -f "$HOME/.ssh/known_hosts" \
+                            >/dev/null; then
 
                             ssh-keyscan \
-                              -H github.com \
-                              >> "$HOME/.ssh/known_hosts"
+                                -H github.com \
+                                >> "$HOME/.ssh/known_hosts"
                         fi
 
                         echo "Testing GitOps repository access..."
@@ -305,79 +298,160 @@ pipeline {
 
                         echo "Cloning GitOps repository..."
                         git clone \
-                          --branch "$GITOPS_BRANCH" \
-                          --single-branch \
-                          "$GITOPS_REPOSITORY" \
-                          "$GITOPS_DIR"
+                            --branch "$GITOPS_BRANCH" \
+                            --single-branch \
+                            "$GITOPS_REPOSITORY" \
+                            "$GITOPS_DIR"
 
                         cd "$GITOPS_DIR"
+
+                        echo "Current GitOps branch:"
+                        git branch --show-current
 
                         echo "Checking required GitOps files..."
                         test -f helm/adminserver/values.yaml
                         test -f helm/product/values.yaml
                         test -f helm/userservice/values.yaml
 
-                        echo "Updating Admin Server image tag..."
-                        sed -i \
-                          "s|^  tag:.*|  tag: \\"${IMAGE_TAG}\\"|" \
-                          helm/adminserver/values.yaml
+                        echo "Image configuration before update:"
 
-                        echo "Updating Product Service image tag..."
-                        sed -i \
-                          "s|^  tag:.*|  tag: \\"${IMAGE_TAG}\\"|" \
-                          helm/product/values.yaml
-
-                        echo "Updating User Service image tag..."
-                        sed -i \
-                          "s|^  tag:.*|  tag: \\"${IMAGE_TAG}\\"|" \
-                          helm/userservice/values.yaml
-
-                        echo "Verifying updated tags..."
-
-                        grep -q \
-                          "tag: \\"${IMAGE_TAG}\\"" \
-                          helm/adminserver/values.yaml
-
-                        grep -q \
-                          "tag: \\"${IMAGE_TAG}\\"" \
-                          helm/product/values.yaml
-
-                        grep -q \
-                          "tag: \\"${IMAGE_TAG}\\"" \
-                          helm/userservice/values.yaml
-
-                        echo "Admin Server values:"
+                        echo "Admin Server:"
                         grep -A 3 "^image:" \
-                          helm/adminserver/values.yaml
+                            helm/adminserver/values.yaml
 
-                        echo "Product Service values:"
+                        echo "Product Service:"
                         grep -A 3 "^image:" \
-                          helm/product/values.yaml
+                            helm/product/values.yaml
 
-                        echo "User Service values:"
+                        echo "User Service:"
                         grep -A 3 "^image:" \
-                          helm/userservice/values.yaml
+                            helm/userservice/values.yaml
+
+                        echo "Updating image tags to ${IMAGE_TAG}..."
+
+                        python3 - \
+                            "$IMAGE_TAG" \
+                            helm/adminserver/values.yaml \
+                            helm/product/values.yaml \
+                            helm/userservice/values.yaml <<'PYTHON_SCRIPT'
+from pathlib import Path
+import sys
+
+image_tag = sys.argv[1]
+files = sys.argv[2:]
+
+for file_name in files:
+    path = Path(file_name)
+
+    if not path.exists():
+        raise SystemExit(f"Required file not found: {file_name}")
+
+    lines = path.read_text(encoding="utf-8").splitlines(
+        keepends=True
+    )
+
+    inside_image_section = False
+    tag_updated = False
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        indentation = len(line) - len(line.lstrip())
+
+        if stripped == "image:" and indentation == 0:
+            inside_image_section = True
+            continue
+
+        if inside_image_section:
+            if stripped and indentation == 0:
+                break
+
+            if stripped.startswith("tag:"):
+                prefix = line[:indentation]
+
+                if line.endswith("\\r\\n"):
+                    newline = "\\r\\n"
+                elif line.endswith("\\n"):
+                    newline = "\\n"
+                else:
+                    newline = ""
+
+                lines[index] = (
+                    f'{prefix}tag: "{image_tag}"{newline}'
+                )
+
+                tag_updated = True
+                break
+
+    if not tag_updated:
+        raise SystemExit(
+            f"Could not locate image.tag in {file_name}"
+        )
+
+    path.write_text(
+        "".join(lines),
+        encoding="utf-8"
+    )
+
+    print(
+        f"Updated {file_name} to image tag {image_tag}"
+    )
+PYTHON_SCRIPT
+
+                        echo "Image configuration after update:"
+
+                        echo "Admin Server:"
+                        grep -A 3 "^image:" \
+                            helm/adminserver/values.yaml
+
+                        echo "Product Service:"
+                        grep -A 3 "^image:" \
+                            helm/product/values.yaml
+
+                        echo "User Service:"
+                        grep -A 3 "^image:" \
+                            helm/userservice/values.yaml
+
+                        echo "Verifying updated image tags..."
+
+                        grep -qE \
+                            "^[[:space:]]*tag:[[:space:]]*\\"${IMAGE_TAG}\\"[[:space:]]*$" \
+                            helm/adminserver/values.yaml
+
+                        grep -qE \
+                            "^[[:space:]]*tag:[[:space:]]*\\"${IMAGE_TAG}\\"[[:space:]]*$" \
+                            helm/product/values.yaml
+
+                        grep -qE \
+                            "^[[:space:]]*tag:[[:space:]]*\\"${IMAGE_TAG}\\"[[:space:]]*$" \
+                            helm/userservice/values.yaml
 
                         git config user.name "Jenkins"
                         git config user.email "jenkins@local"
 
                         git add \
-                          helm/adminserver/values.yaml \
-                          helm/product/values.yaml \
-                          helm/userservice/values.yaml
+                            helm/adminserver/values.yaml \
+                            helm/product/values.yaml \
+                            helm/userservice/values.yaml
+
+                        echo "Git changes:"
+                        git diff --cached
 
                         if git diff --cached --quiet; then
-                            echo "No GitOps changes were detected."
-                        else
-                            git commit \
-                              -m "Deploy shopping portal build ${IMAGE_TAG}"
-
-                            git push \
-                              origin \
-                              "HEAD:${GITOPS_BRANCH}"
-
-                            echo "GitOps repository updated successfully."
+                            echo "ERROR: Image tags were not changed."
+                            exit 1
                         fi
+
+                        git commit \
+                            -m "Deploy shopping portal build ${IMAGE_TAG}"
+
+                        git push \
+                            origin \
+                            "HEAD:${GITOPS_BRANCH}"
+
+                        echo "Latest GitOps commit:"
+                        git log -1 --oneline
+
+                        echo "GitOps repository updated successfully."
                     '''
                 }
             }
@@ -387,7 +461,8 @@ pipeline {
     post {
         always {
             junit(
-                testResults: "${APP_DIR}/**/build/test-results/test/*.xml",
+                testResults:
+                    "${APP_DIR}/**/build/test-results/test/*.xml",
                 allowEmptyResults: true
             )
 
@@ -411,7 +486,7 @@ ${GITOPS_REPOSITORY}
 GitOps image tag:
 ${IMAGE_TAG}
 
-Argo CD should now detect the GitOps commit and synchronize the applications.
+Argo CD should detect the GitOps commit and synchronize the applications.
 """
         }
 
@@ -420,10 +495,11 @@ Argo CD should now detect the GitOps commit and synchronize the applications.
 Pipeline failed.
 
 Check the first failed stage:
-1. Gradle build
-2. Docker build
-3. Docker Hub push
-4. GitOps repository update
+1. Checkout
+2. Gradle build
+3. Docker build
+4. Docker Hub push
+5. GitOps repository update
 """
         }
 
@@ -432,10 +508,10 @@ Check the first failed stage:
                 rm -rf shopping-portal-gitops || true
 
                 docker image rm \
-                  "${ADMIN_IMAGE}:${IMAGE_TAG}" \
-                  "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
-                  "${USER_IMAGE}:${IMAGE_TAG}" \
-                  >/dev/null 2>&1 || true
+                    "${ADMIN_IMAGE}:${IMAGE_TAG}" \
+                    "${PRODUCT_IMAGE}:${IMAGE_TAG}" \
+                    "${USER_IMAGE}:${IMAGE_TAG}" \
+                    >/dev/null 2>&1 || true
             '''
         }
     }
