@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Shopping Portal</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header>
+    <div>
+        <h1>Shopping Portal</h1>
+        <p>Product and user management portal</p>
+    </div>
+</header>
+
+<main>
+    <section class="panel">
+        <div class="section-heading">
+            <div>
+                <h2>Products</h2>
+                <p>Browse all products or filter by category.</p>
+            </div>
+
+            <button id="load-products-button">
+                Load Products
+            </button>
+        </div>
+
+        <div class="inline-form">
+            <input
+                id="category"
+                type="text"
+                placeholder="Enter category"
+            >
+            <button id="filter-products-button">
+                Filter
+            </button>
+            <button id="clear-filter-button" class="secondary">
+                Clear
+            </button>
+        </div>
+
+        <div id="products" class="product-grid"></div>
+    </section>
+
+    <section class="panel">
+        <h2>Product Administration</h2>
+        <p>
+            Enter the product JSON expected by the Product service.
+        </p>
+
+        <textarea id="product-json" rows="12">{
+  "name": "Demo Product",
+  "description": "Demo product created from the frontend",
+  "category": "GENERAL",
+  "price": 100
+}</textarea>
+
+        <div class="button-row">
+            <button id="add-product-button">
+                Add Product
+            </button>
+
+            <button id="update-product-button" class="secondary">
+                Update Product
+            </button>
+        </div>
+
+        <div class="inline-form delete-form">
+            <input
+                id="delete-product-id"
+                type="text"
+                placeholder="Product ID"
+            >
+            <button id="delete-product-button" class="danger">
+                Delete Product
+            </button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>User Service</h2>
+
+        <div class="notice">
+            The User service may require Basic Authentication.
+            Enter the application security credentials stored in
+            <code>shopping-secrets</code>.
+        </div>
+
+        <div class="two-column">
+            <div>
+                <label for="api-username">API username</label>
+                <input
+                    id="api-username"
+                    type="text"
+                    autocomplete="username"
+                >
+            </div>
+
+            <div>
+                <label for="api-password">API password</label>
+                <input
+                    id="api-password"
+                    type="password"
+                    autocomplete="current-password"
+                >
+            </div>
+        </div>
+
+        <h3>Find User</h3>
+
+        <div class="inline-form">
+            <input
+                id="find-email"
+                type="email"
+                placeholder="User email"
+            >
+            <button id="find-user-button">
+                Find User
+            </button>
+        </div>
+
+        <h3>Register User</h3>
+
+        <textarea id="user-json" rows="10">{
+  "name": "Demo User",
+  "email": "demo@example.com",
+  "password": "Password123"
+}</textarea>
+
+        <button id="register-user-button">
+            Register User
+        </button>
+    </section>
+
+    <section class="panel">
+        <h2>API Response</h2>
+        <pre id="response-output">Ready.</pre>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
